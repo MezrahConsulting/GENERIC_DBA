@@ -1,0 +1,1 @@
+-- https://www.mssqltips.com/sqlservertip/6338/sql-server-backup-size-vs-database-size-script/
