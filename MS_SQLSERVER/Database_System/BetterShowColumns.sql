@@ -1,5 +1,9 @@
+/** This is pretty close to replicating MYSQL's show full columns 
+    --Dave Babler*/
+
 DECLARE @TblName VARCHAR(80);
 SET @TblName = '';
+
 
  SELECT /* col.TABLE_CATALOG AS [Database]
      , col.TABLE_SCHEMA AS Owner
@@ -11,7 +15,6 @@ SET @TblName = '';
      , col.CHARACTER_MAXIMUM_LENGTH AS MaxLength
      , col.DATETIME_PRECISION AS DatePrecision
 	 , col.NUMERIC_PRECISION AS NumericPrecision
-	 , col.COLLATION_NAME AS CollationName
      , CAST(CASE col.IS_NULLABLE
                 WHEN 'NO' THEN 0
                 ELSE 1
@@ -19,6 +22,8 @@ SET @TblName = '';
      , COLUMNPROPERTY(OBJECT_ID('[' + col.TABLE_SCHEMA + '].[' + col.TABLE_NAME + ']'), col.COLUMN_NAME, 'IsIdentity')AS IsIdentity
      , COLUMNPROPERTY(OBJECT_ID('[' + col.TABLE_SCHEMA + '].[' + col.TABLE_NAME + ']'), col.COLUMN_NAME, 'IsComputed')AS IsComputed
      , CAST(ISNULL(pk.is_primary_key, 0)AS bit)AS IsPrimaryKey
+	 , col.COLLATION_NAME AS CollationName
+	 , s.value AS Description
   FROM INFORMATION_SCHEMA.COLUMNS AS col
        LEFT JOIN(SELECT SCHEMA_NAME(o.schema_id)AS TABLE_SCHEMA
                       , o.name AS TABLE_NAME
@@ -32,6 +37,11 @@ SET @TblName = '';
                   WHERE i.is_primary_key = 1)AS pk ON col.TABLE_NAME = pk.TABLE_NAME
                                                   AND col.TABLE_SCHEMA = pk.TABLE_SCHEMA
                                                   AND col.COLUMN_NAME = pk.COLUMN_NAME
- WHERE col.TABLE_NAME = @TblName
+	LEFT OUTER JOIN sys.extended_properties s 
+		ON s.major_id = OBJECT_ID(col.TABLE_SCHEMA + '.' + col.TABLE_NAME)
+			AND s.minor_id = col.ORDINAL_POSITION
+			AND s.name = 'MS_Description'
+		
+ WHERE col.TABLE_NAME = 'PayoutPathElection'
    AND col.TABLE_SCHEMA = 'dbo'
  ORDER BY col.TABLE_NAME, col.ORDINAL_POSITION;
