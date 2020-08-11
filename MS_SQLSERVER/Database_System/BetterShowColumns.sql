@@ -42,6 +42,6 @@ SET @TblName = '';
 			AND s.minor_id = col.ORDINAL_POSITION
 			AND s.name = 'MS_Description'
 		
- WHERE col.TABLE_NAME = 'PayoutPathElection'
+ WHERE col.TABLE_NAME = @TblName
    AND col.TABLE_SCHEMA = 'dbo'
  ORDER BY col.TABLE_NAME, col.ORDINAL_POSITION;
