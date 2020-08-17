@@ -71,3 +71,11 @@ END
 
 
 
+SELECT	Whatever
+		, BlahBlah
+FROM	SOME_TABLE ST 
+	RIGHT JOIN ANOTHER_TABLE AT 
+		ON ST.SomeID = AT.SomeOtherID
+			AND ST.SomeTemporalID >= AT.TemporalColumnF
+	LEFT JOIN THIRD_TABLE TT 
+		ON ST.LookupID = TT.LookupOriginID
