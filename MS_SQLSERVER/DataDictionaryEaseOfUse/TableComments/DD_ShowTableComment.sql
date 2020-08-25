@@ -8,7 +8,7 @@ GO
 -- Create date: 08/25/2020
 -- Description:	Checks to see if table comments exist
 -- =============================================
-CREATE PROCEDURE DD_ShowTableComments 
+CREATE PROCEDURE DD_ShowTableComment
 
 	@strTableName nvarchar(64)
 
