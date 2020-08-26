@@ -10,7 +10,13 @@ GO
 -- Create date: 08/25/2020
 -- Description:	Checks to see if table comments exist
 -- =============================================
-CREATE OR ALTER PROCEDURE DD_ShowTableComment @strTableName NVARCHAR(64)
+CREATE OR ALTER PROCEDURE DD_ShowTableComment 
+	@strTableName NVARCHAR(64), 
+	@boolOptionalSuccessFlag BIT = NULL OUTPUT, 
+	@strOptionalMessageOut NVARCHAR(320) = NULL OUTPUT
+	/** The success flag will be used when passing this to other procedures to see if table comments exist.
+	 * The optional message out will be used when passing from proc to proc to make things more proceduralized.
+	 * --Dave Babler 08/26/2020  */
 AS
 DECLARE @strMessageOut NVARCHAR(320);
 
@@ -49,12 +55,15 @@ BEGIN TRY
 			INNER JOIN tp
 				ON t.table_name = tp.epTableName
 			WHERE TABLE_TYPE = N'BASE TABLE'
-				AND tp.epTableName = @strTableName
+				AND tp.epTableName = @strTableName;
+			SET @boolOptionalSuccessFlag = 1; --Let any calling procedures know that there is in fact
+			SET @strOptionalMessageOut = @strMessageOut;
 		END
 		ELSE
 		BEGIN
-			SET @strMessageOut = @strTableName + N' currently has no comments please use DD_AddTableComment to add comments!'
-				;
+			SET @boolOptionalSuccessFlag = 0; --let any proc calling know that there is no table comments yet.
+			SET @strMessageOut = @strTableName + N' currently has no comments please use DD_AddTableComment to add comments!';
+			SET @strOptionalMessageOut = @strMessageOut;
 		END
 
 		SELECT @strTableName AS 'Table Name'
@@ -66,6 +75,7 @@ BEGIN TRY
 
 		SELECT @strMessageOut AS 'NON_LOGGED_ERROR_MESSAGE'
 	END
+
 END TRY
 
 BEGIN CATCH
