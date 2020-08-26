@@ -9,10 +9,7 @@ GO
 -- Create date: 08/26/2020
 -- Description:	This makes adding comments to columns in SQLServer far more accessible than before.
 -- =============================================
-CREATE
-	OR
-
-ALTER PROCEDURE DD_AddColumnComment
+CREATE OR ALTER PROCEDURE DD_AddColumnComment
 	-- Add the parameters for the stored procedure here
 	@strTableName NVARCHAR(64)
 	, @strColumnName NVARCHAR(64)

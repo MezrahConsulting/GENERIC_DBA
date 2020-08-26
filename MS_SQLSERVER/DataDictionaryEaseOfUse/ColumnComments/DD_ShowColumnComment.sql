@@ -1,5 +1,19 @@
-DECLARE @strTableName NVARCHAR(64)
-    , @strColumnName NVARCHAR(64);
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Dave Babler
+-- Create date: 08/26/2020
+-- Description:	This procedure makes viewing comments on a single column much more accessible.
+-- =============================================
+CREATE PROCEDURE DD_ShowColumnComment 
+	-- Add the parameters for the stored procedure here
+	@strTableName NVARCHAR(64)
+	, @strColumnName NVARCHAR(64)
+AS
+
+
 DECLARE @strMessageOut NVARCHAR(320);
 
 BEGIN TRY
