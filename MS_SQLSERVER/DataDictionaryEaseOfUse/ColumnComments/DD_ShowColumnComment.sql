@@ -1,8 +1,6 @@
 DECLARE @strTableName NVARCHAR(64)
-        , @strColumnName NVARCHAR(64);
+	, @strColumnName NVARCHAR(64);
 DECLARE @strMessageOut NVARCHAR(320);
-
-
 
 BEGIN TRY
 	IF EXISTS (
@@ -10,32 +8,34 @@ BEGIN TRY
 			FROM SYS.EXTENDED_PROPERTIES
 			WHERE [major_id] = OBJECT_ID(@strTableName)
 				AND [name] = N'MS_Description'
-				AND [minor_id] = 0
+				AND [minor_id] = (
+					SELECT [column_id]
+					FROM SYS.COLUMNS
+					WHERE [name] = @strColumnName
+						AND [object_id] = OBJECT_ID(@strTableName)
+					)
 			)
 	BEGIN
-		WITH tp
-		AS (
-			SELECT OBJECT_NAME(ep.major_id) AS [epTableName]
-				, ep.Value AS [epExtendedProperty]
-			FROM sys.extended_properties ep
-			WHERE ep.name = N'MS_Description' --sql server absurdly complex version of COMMENT
-				AND ep.minor_id = 0 --prevents showing column comments
-			)
-		SELECT TOP 1 @strMessageOut = CAST(tp.epExtendedProperty AS NVARCHAR(320))
-		FROM information_schema.tables AS t
-		INNER JOIN tp
-			ON t.table_name = tp.epTableName
-		WHERE TABLE_TYPE = N'BASE TABLE'
-			AND tp.epTableName = @strTableName
+		SELECT TOP 1 @strMessageOut = CAST(ep.value AS  NVARCHAR(320))
+		FROM sys.extended_properties ep
+		INNER JOIN sys.all_objects ob
+			ON ep.major_id = ob.object_id
+		INNER JOIN sys.tables AS st
+			ON ob.object_id = st.object_id
+		INNER JOIN sys.columns AS c
+			ON ep.major_id = c.object_id
+				AND ep.minor_id = c.column_id
+		WHERE st.name = @strTableName
+			AND c.name = @strColumnName
 	END
 	ELSE
 	BEGIN
-		SET @strMessageOut = @strTableName + 
-			N' currently has no comments please use DD_AddTableComment to add comments!';
+		SET @strMessageOut = @strTableName + ' ' + @strColumnName + 
+			N' currently has no comments please use DD_AddColumnComment to add a comment!';
 	END
 
-	SELECT @strTableName AS 'Table Name'
-		    , @strMessageOut AS 'TableComment';
+	SELECT @strColumnName AS 'ColumnName'
+		, @strMessageOut AS 'TableComment';
 END TRY
 
 BEGIN CATCH
