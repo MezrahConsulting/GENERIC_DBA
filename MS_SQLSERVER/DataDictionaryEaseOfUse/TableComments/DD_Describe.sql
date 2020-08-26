@@ -2,8 +2,12 @@
     --Dave Babler*/
 DECLARE @strTableName VARCHAR(64);
 
+
 SET @strTableName = 'DB_EXCEPTION_TANK';
 DECLARE @strMessageOut NVARCHAR(320);
+DECLARE @boolIsTableCommentSet BIT = NULL;
+DECLARE @strTableComment NVARCHAR(320);
+DECLARE @strTableSubComment NVARCHAR(80); --This will be an additional flag warning there is no actual table comment!
 BEGIN TRY
 	IF EXISTS (
 			/**Check to see if the table exists, if it does not we will output an Error Message
@@ -15,16 +19,22 @@ BEGIN TRY
 			WHERE TABLE_NAME = @strTableName
 			)
 	BEGIN
+	   -- we want to suppress results (perhaps this could be proceduralized as well one to make the table one to kill?)
+	    CREATE TABLE #__suppress_results (col1 int);
+		EXEC DD_ShowTableComment @strTableName, @boolIsTableCommentSet OUTPUT, @strTableComment OUTPUT;
+
+		IF @boolIsTableCommentSet = 0 
+			BEGIN 
+				SET @strTableSubComment = 'RECTIFY MISSING TABLE COMMENT -->';
+			END
+		ELSE 
+			BEGIN 
+				SET @strTableSubComment = 'TABLE COMMENT --> ';
+			END
+		
 
 		/*Common table expression tp will be used in second part of the union statement!*/
-		WITH tp
-		AS (
-			SELECT OBJECT_NAME(ep.major_id) AS [epTableName]
-				, ep.Value AS [epExtendedProperty]
-			FROM sys.extended_properties ep
-			WHERE ep.name = N'MS_Description' --sql server							 absurdly complex version of COMMENT
-				AND ep.minor_id = 0 --prevents showing column comments
-			)
+
 		SELECT col.COLUMN_NAME AS ColumnName
 			, col.ORDINAL_POSITION AS OrdinalPosition
 			, col.COLUMN_DEFAULT AS DefaultSetting
@@ -82,13 +92,8 @@ BEGIN TRY
 			, NULL
 			, NULL
 			, NULL
-			, 'TABLE COMMENT ROW'
-			, CAST(tp.epExtendedProperty AS NVARCHAR(320)) AS TableComment
-		FROM information_schema.tables AS t
-		INNER JOIN tp
-			ON t.table_name = tp.epTableName
-		WHERE TABLE_TYPE = N'BASE TABLE'
-			AND tp.epTableName = @strTableName
+			, @strTableSubComment
+			, @strTableComment
 		ORDER BY 2
 	END
 ELSE 
@@ -97,6 +102,8 @@ ELSE
 
 		SELECT @strMessageOut AS 'NON_LOGGED_ERROR_MESSAGE' 
 	END 
+
+	DROP TABLE IF EXISTS #__suppress_results;
 END TRY 
 
 
