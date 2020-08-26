@@ -1,13 +1,16 @@
+--WARNING! ERRORS ENCOUNTERED DURING SQL PARSING!
+--WARNING! ERRORS ENCOUNTERED DURING SQL PARSING!
 /** This is pretty close to replicating MYSQL's show full columns 
     --Dave Babler*/
 DECLARE @strTableName VARCHAR(64);
 
+SET @strTableName = 'ParticipantTrades';
 
-SET @strTableName = 'DB_EXCEPTION_TANK';
 DECLARE @strMessageOut NVARCHAR(320);
 DECLARE @boolIsTableCommentSet BIT = NULL;
 DECLARE @strTableComment NVARCHAR(320);
-DECLARE @strTableSubComment NVARCHAR(80); --This will be an additional flag warning there is no actual table comment!
+DECLARE @strTableSubComment NVARCHAR(80);--This will be an additional flag warning there is no actual table comment!
+
 BEGIN TRY
 	IF EXISTS (
 			/**Check to see if the table exists, if it does not we will output an Error Message
@@ -19,22 +22,43 @@ BEGIN TRY
 			WHERE TABLE_NAME = @strTableName
 			)
 	BEGIN
-	   -- we want to suppress results (perhaps this could be proceduralized as well one to make the table one to kill?)
-	    CREATE TABLE #__suppress_results (col1 int);
-		EXEC DD_ShowTableComment @strTableName, @boolIsTableCommentSet OUTPUT, @strTableComment OUTPUT;
+		-- we want to suppress results (perhaps this could be proceduralized as well one to make the table one to kill?)
+		CREATE TABLE #__suppress_results (col1 INT);
 
-		IF @boolIsTableCommentSet = 0 
-			BEGIN 
-				SET @strTableSubComment = 'RECTIFY MISSING TABLE COMMENT -->';
-			END
-		ELSE 
-			BEGIN 
-				SET @strTableSubComment = 'TABLE COMMENT --> ';
-			END
-		
+		EXEC DD_ShowTableComment @strTableName
+			, @boolIsTableCommentSet OUTPUT
+			, @strTableComment OUTPUT;
 
-		/*Common table expression tp will be used in second part of the union statement!*/
+		IF @boolIsTableCommentSet = 0
+		BEGIN
+			SET @strTableSubComment = 'RECTIFY MISSING TABLE COMMENT -->';
+		END
+		ELSE
+		BEGIN
+			SET @strTableSubComment = 'TABLE COMMENT --> ';
+		END
 
+		WITH fkeys
+		AS (
+			SELECT col.name AS NameofFKColumn
+				, schema_name(pk_tab.schema_id) + '.' + pk_tab.name AS ReferencedTable
+				, pk_col.name AS PrimaryKeyColumnName
+			FROM sys.tables tab
+			INNER JOIN sys.columns col
+				ON col.object_id = tab.object_id
+			LEFT JOIN sys.foreign_key_columns fk_cols
+				ON fk_cols.parent_object_id = tab.object_id
+					AND fk_cols.parent_column_id = col.column_id
+			LEFT JOIN sys.foreign_keys fk
+				ON fk.object_id = fk_cols.constraint_object_id
+			LEFT JOIN sys.tables pk_tab
+				ON pk_tab.object_id = fk_cols.referenced_object_id
+			LEFT JOIN sys.columns pk_col
+				ON pk_col.column_id = fk_cols.referenced_column_id
+					AND pk_col.object_id = fk_cols.referenced_object_id
+			WHERE fk.name IS NOT NULL
+				AND tab.name = @strTableName
+			)
 		SELECT col.COLUMN_NAME AS ColumnName
 			, col.ORDINAL_POSITION AS OrdinalPosition
 			, col.COLUMN_DEFAULT AS DefaultSetting
@@ -47,9 +71,12 @@ BEGIN TRY
 						THEN 0
 					ELSE 1
 					END AS BIT) AS IsNullable
-			, COLUMNPROPERTY(OBJECT_ID('[' + col.TABLE_SCHEMA + '].[' + col.TABLE_NAME + ']'), col.COLUMN_NAME, 'IsIdentity') AS IsIdentity
-			, COLUMNPROPERTY(OBJECT_ID('[' + col.TABLE_SCHEMA + '].[' + col.TABLE_NAME + ']'), col.COLUMN_NAME, 'IsComputed') AS IsComputed
+			, COLUMNPROPERTY(OBJECT_ID('[' + col.TABLE_SCHEMA + '].[' + col.TABLE_NAME + ']'), col.COLUMN_NAME, 'IsIdentity') AS 
+			IsIdentity
+			, COLUMNPROPERTY(OBJECT_ID('[' + col.TABLE_SCHEMA + '].[' + col.TABLE_NAME + ']'), col.COLUMN_NAME, 'IsComputed') AS 
+			IsComputed
 			, CAST(ISNULL(pk.is_primary_key, 0) AS BIT) AS IsPrimaryKey
+			, 'FK of: ' + fkeys.ReferencedTable + '.' + fkeys.PrimaryKeyColumnName AS ReferencedTablePrimaryKey
 			, col.COLLATION_NAME AS CollationName
 			, s.value AS Description
 		FROM INFORMATION_SCHEMA.COLUMNS AS col
@@ -76,12 +103,15 @@ BEGIN TRY
 			ON s.major_id = OBJECT_ID(col.TABLE_SCHEMA + '.' + col.TABLE_NAME)
 				AND s.minor_id = col.ORDINAL_POSITION
 				AND s.name = 'MS_Description'
+		LEFT JOIN fkeys AS fkeys
+			ON col.COLUMN_NAME = fkeys.NameofFKColumn
 		WHERE col.TABLE_NAME = @strTableName
 			AND col.TABLE_SCHEMA = 'dbo'
-
+		
 		UNION ALL
-
+		
 		SELECT TOP 1 @strTableName
+			, NULL
 			, NULL
 			, NULL
 			, NULL
@@ -96,27 +126,26 @@ BEGIN TRY
 			, @strTableComment
 		ORDER BY 2
 	END
-ELSE 
+	ELSE
 	BEGIN
 		SET @strMessageOut = ' The table you typed in: ' + @strTableName + ' ' + 'is invalid, check spelling, try again? ';
 
-		SELECT @strMessageOut AS 'NON_LOGGED_ERROR_MESSAGE' 
-	END 
+		SELECT @strMessageOut AS 'NON_LOGGED_ERROR_MESSAGE'
+	END
 
-	DROP TABLE IF EXISTS #__suppress_results;
-END TRY 
+	DROP TABLE
 
-
-BEGIN CATCH
-	INSERT INTO dbo.DB_EXCEPTION_TANK
-	VALUES (
-		SUSER_SNAME()
-		, ERROR_NUMBER()
-		, ERROR_STATE()
-		, ERROR_SEVERITY()
-		, ERROR_PROCEDURE()
-		, ERROR_LINE()
-		, ERROR_MESSAGE()
-		, GETDATE()
-		);
-END CATCH;
+	IF EXISTS #__suppress_results;END TRY
+	BEGIN CATCH
+		INSERT INTO dbo.DB_EXCEPTION_TANK
+		VALUES (
+			SUSER_SNAME()
+			, ERROR_NUMBER()
+			, ERROR_STATE()
+			, ERROR_SEVERITY()
+			, ERROR_PROCEDURE()
+			, ERROR_LINE()
+			, ERROR_MESSAGE()
+			, GETDATE()
+			);
+	END CATCH;
