@@ -36,7 +36,7 @@ BEGIN TRY
 	BEGIN
 		--RESET THE FLAG and message holder
 		SET @boolOKToProceed = NULL;
-		SET @strErrorMessage = NULL;
+		SET @strErrorBuilder = NULL;
 
 		--CHECK THE COLUMN 
 		EXEC DD_ColumnExist @strTableName1
@@ -48,6 +48,7 @@ BEGIN TRY
 		BEGIN
 			--RESET THE FLAG and message holder
 			SET @boolOKToProceed = NULL;
+            SET @strErrorBuilder = NULL;
 
 			--CHECK TABLE 2
 			EXEC DD_TableExist @strTableName2
@@ -58,6 +59,7 @@ BEGIN TRY
 			BEGIN
 				--RESET THE FLAG and message holder
 				SET @boolOKToProceed = NULL;
+                SET @strErrorBuilder = NULL;
 
 				--CHECK COLUMN 2
 				EXEC DD_ColumnExist @strTableName2
