@@ -2,12 +2,12 @@ DECLARE @strTableName1 VARCHAR(64);
 DECLARE @strTableName2 VARCHAR(64);
 DECLARE @strColumnName1 VARCHAR(64);
 DECLARE @strColumnName2 VARCHAR(64);
-SET  @strTableName1 = '';
-SET  @strTableName2 = '';
-SET  @strColumnName1 = '';
-SET  @strColumnName2 = '';
-DECLARE @strErrorMessage VARCHAR(MAX);
-DECLARE @strErrorBuilder VARCHAR(MAX) = 'This is the first error I have encountered, you may have more: ';
+SET  @strTableName1 = 'ParticipantTrades';
+SET  @strTableName2 = 'fundd';
+SET  @strColumnName1 = 'Fund';
+SET  @strColumnName2 = 'UID';
+DECLARE @strErrorMessage VARCHAR(MAX) = 'This is the first error I have encountered, you may have more: ';
+DECLARE @strErrorBuilder VARCHAR(MAX);
 --not doing recursive error checking for this, sorry. -- Dave Babler
 DECLARE @boolOKToProceed BIT = NULL;
 
@@ -23,7 +23,8 @@ BEGIN
 		SET @strErrorMessage = NULL;
 
 		--CHECK THE COLUMN 
-		EXEC DD_ColumnExist @strColumnName1
+		EXEC DD_ColumnExist @strTableName1
+            , @strColumnName1
 			, @boolOKToProceed OUTPUT
 			, @strErrorBuilder OUTPUT;
 
@@ -45,7 +46,8 @@ BEGIN
 				SET @strErrorMessage = NULL;
 
 				--CHECK COLUMN 2
-				EXEC DD_ColumnExist @strColumnName2
+				EXEC DD_ColumnExist @strTableName2 
+                    , @strColumnName2
 					, @boolOKToProceed OUTPUT
 					, @strErrorBuilder OUTPUT;
 
