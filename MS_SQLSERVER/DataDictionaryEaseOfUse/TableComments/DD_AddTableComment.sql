@@ -28,7 +28,7 @@ BEGIN TRY
 	BEGIN
 		--if it does not exist raise error and send to the exception tank
 		SET @boolCatchFlag = 1;
-		SET @strErrorMessage = 'Attempt to add comment on table ' + @strTableName + ';however ' + + @strTableName + 
+		SET @strErrorMessage = 'Attempt to add comment on table ' + @strTableName + ';however ' +  @strTableName + 
 			' does not exist, check spelling, try again?';
 
 		RAISERROR (
