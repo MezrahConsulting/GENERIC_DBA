@@ -27,6 +27,9 @@ BEGIN TRY
         )
         BEGIN 
             IF EXISTS (
+                /**Check to see if the column has the extened properties on it.
+                 *If it does not  will ultimately ask someone to please create 
+                 * the comment on the column -- Babler */
                     SELECT NULL
                     FROM SYS.EXTENDED_PROPERTIES
                     WHERE [major_id] = OBJECT_ID(@strTableName)
