@@ -19,8 +19,15 @@ CREATE OR ALTER PROCEDURE DD_ShowTableComment
 	 * --Dave Babler 08/26/2020  */
 AS
 DECLARE @strMessageOut NVARCHAR(320);
+DECLARE @boolSuppressVisualOutput BIT; 
 
 BEGIN TRY
+  /**First with procedures that are stand alone/embedded hybrids, determine if we need to suppress output by 
+  * populating the data for that variable 
+  * --Dave Babler */
+
+	SELECT @boolSuppressVisualOutput = dbo.fun_SuppressOutput();
+
 	IF EXISTS (
 			/**Check to see if the table exists, if it does not we will output an Error Message
         * however since we are not writing anything to the DD we won't go through the whole RAISEEROR 
@@ -65,9 +72,11 @@ BEGIN TRY
 			SET @strMessageOut = @strTableName + N' currently has no comments please use DD_AddTableComment to add comments!';
 			SET @strOptionalMessageOut = @strMessageOut;
 		END
-
-		SELECT @strTableName AS 'Table Name'
-			, @strMessageOut AS 'TableComment';
+		IF @boolSuppressVisualOutput = 0
+		BEGIN
+			SELECT @strTableName AS 'Table Name'
+				, @strMessageOut AS 'TableComment';
+		END
 	END
 	ELSE
 	BEGIN
