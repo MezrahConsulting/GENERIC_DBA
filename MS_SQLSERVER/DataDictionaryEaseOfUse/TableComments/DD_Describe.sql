@@ -1,10 +1,19 @@
---WARNING! ERRORS ENCOUNTERED DURING SQL PARSING!
---WARNING! ERRORS ENCOUNTERED DURING SQL PARSING!
-/** This is pretty close to replicating MYSQL's show full columns 
-    --Dave Babler*/
-DECLARE @strTableName VARCHAR(64);
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Dave Babler
+-- Create date: 08/26/2020
+-- Description:	This recreates and improves upon Oracle's ANSI DESCRIBE table built in data dictionary proc
+-- =============================================
+CREATE OR ALTER PROCEDURE DD_Describe 
+	-- Add the parameters for the stored procedure here
+	@strTableName VARCHAR(64) 
+	 
+AS
 
-SET @strTableName = 'ParticipantTrades';
+
 
 DECLARE @strMessageOut NVARCHAR(320);
 DECLARE @boolIsTableCommentSet BIT = NULL;
@@ -37,8 +46,8 @@ BEGIN TRY
 		BEGIN
 			SET @strTableSubComment = 'TABLE COMMENT --> ';
 		END
-
-		WITH fkeys
+		--it made me put the delimiter here I have NO CLUE why --Babler
+		;WITH fkeys
 		AS (
 			SELECT col.name AS NameofFKColumn
 				, schema_name(pk_tab.schema_id) + '.' + pk_tab.name AS ReferencedTable
