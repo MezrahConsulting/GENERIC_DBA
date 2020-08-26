@@ -1,17 +1,33 @@
-DECLARE @strTableName1 VARCHAR(64);
-DECLARE @strTableName2 VARCHAR(64);
-DECLARE @strColumnName1 VARCHAR(64);
-DECLARE @strColumnName2 VARCHAR(64);
-SET  @strTableName1 = 'ParticipantTrades';
-SET  @strTableName2 = 'fundd';
-SET  @strColumnName1 = 'Fund';
-SET  @strColumnName2 = 'UID';
+-- ================================================
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- =============================================
+-- Author:		Dave Babler
+-- Create date: 08/26/2020
+-- Description:	This shows two colums so you can visually check JOIN compatibility (and for other things)
+-- Subprocedures: 1. [dbo].[DD_ColumnExist]
+--				  2. [dbo].[DD_TableExist]
+-- =============================================
+CREATE
+	OR
+
+ALTER PROCEDURE DD_ColumnCompare
+	-- Add the parameters for the stored procedure here
+	@strTableName1 VARCHAR(64)
+	, @strColumnName1 VARCHAR(64)
+	, @strTableName2 VARCHAR(64)
+	, @strColumnName2 VARCHAR(64)
+AS
 DECLARE @strErrorMessage VARCHAR(MAX) = 'This is the first error I have encountered, you may have more: ';
 DECLARE @strErrorBuilder VARCHAR(MAX);
 --not doing recursive error checking for this, sorry. -- Dave Babler
 DECLARE @boolOKToProceed BIT = NULL;
 
-BEGIN
+BEGIN TRY
 	EXEC DD_TableExist @strTableName1
 		, @boolOKToProceed OUTPUT
 		, @strErrorBuilder OUTPUT;
@@ -24,7 +40,7 @@ BEGIN
 
 		--CHECK THE COLUMN 
 		EXEC DD_ColumnExist @strTableName1
-            , @strColumnName1
+			, @strColumnName1
 			, @boolOKToProceed OUTPUT
 			, @strErrorBuilder OUTPUT;
 
@@ -32,7 +48,6 @@ BEGIN
 		BEGIN
 			--RESET THE FLAG and message holder
 			SET @boolOKToProceed = NULL;
-			SET @strErrorMessage = NULL;
 
 			--CHECK TABLE 2
 			EXEC DD_TableExist @strTableName2
@@ -43,11 +58,10 @@ BEGIN
 			BEGIN
 				--RESET THE FLAG and message holder
 				SET @boolOKToProceed = NULL;
-				SET @strErrorMessage = NULL;
 
 				--CHECK COLUMN 2
-				EXEC DD_ColumnExist @strTableName2 
-                    , @strColumnName2
+				EXEC DD_ColumnExist @strTableName2
+					, @strColumnName2
 					, @boolOKToProceed OUTPUT
 					, @strErrorBuilder OUTPUT;
 
@@ -77,7 +91,15 @@ BEGIN
 						AND COLUMN_NAME = @strColumnName2
 				END -- SECOND COLUMN SUCCESS END
 				ELSE
+				BEGIN
 					SET @strErrorMessage += @strErrorBuilder;
+
+					SELECT @strErrorMessage AS 'ERROR!';
+				END
+			END
+			ELSE
+			BEGIN
+				SET @strErrorMessage += @strErrorBuilder;
 
 				SELECT @strErrorMessage AS 'ERROR!';
 			END
@@ -94,8 +116,22 @@ BEGIN
 		SET @strErrorMessage += @strErrorBuilder;
 
 		SELECT @strErrorMessage AS 'ERROR!';
-	END
-END --FIRST TABLE CHECK SUCCESS END
-	/** I AM VERY TEMPTED TO TURN THE ERROR BUILDER INTO ITS OWN PROC BUT 
-    * THAT MIGHT BE OVERKILL?
-    *  Dave Babler -- 2020-08-26*/
+	END --FIRST TABLE CHECK SUCCESS END
+			/** I AM VERY TEMPTED TO TURN THE ERROR BUILDER INTO ITS OWN PROC BUT 
+           * THAT MIGHT BE OVERKILL?
+        *  Dave Babler -- 2020-08-26*/
+END TRY
+
+BEGIN CATCH
+	INSERT INTO dbo.DB_EXCEPTION_TANK
+	VALUES (
+		SUSER_SNAME()
+		, ERROR_NUMBER()
+		, ERROR_STATE()
+		, ERROR_SEVERITY()
+		, ERROR_PROCEDURE()
+		, ERROR_LINE()
+		, ERROR_MESSAGE()
+		, GETDATE()
+		);
+END CATCH;
