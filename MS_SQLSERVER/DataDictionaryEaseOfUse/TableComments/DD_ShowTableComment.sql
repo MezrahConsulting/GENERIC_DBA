@@ -9,6 +9,7 @@ GO
 -- Author:		Dave Babler
 -- Create date: 08/25/2020
 -- Description:	Checks to see if table comments exist
+-- Subprocedures: 1. [fn_SuppressOutput]
 -- =============================================
 CREATE OR ALTER PROCEDURE DD_ShowTableComment 
 	@strTableName NVARCHAR(64), 
@@ -26,7 +27,7 @@ BEGIN TRY
   * populating the data for that variable 
   * --Dave Babler */
 
-	SELECT @boolSuppressVisualOutput = dbo.fun_SuppressOutput();
+	SELECT @boolSuppressVisualOutput = dbo.fn_SuppressOutput();
 
 	IF EXISTS (
 			/**Check to see if the table exists, if it does not we will output an Error Message
