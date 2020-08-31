@@ -23,7 +23,7 @@ GO
 --				Then in any proc that you want to use either as an embedded procedure or a stand alone 
 --				procedure you check this function for a 1 if it is a 1 you bypass output, if it is a 0  you show output.
 -- =============================================
-CREATE FUNCTION fun_SuppressOutput (
+CREATE FUNCTION fn_SuppressOutput (
 	-- NO PARAMATERS NEEDED
 	-- REMINDER EXCEPTION HANDLING WITH TRY CATCH DOES NOT WORK IN FUNCTIONS
 	)

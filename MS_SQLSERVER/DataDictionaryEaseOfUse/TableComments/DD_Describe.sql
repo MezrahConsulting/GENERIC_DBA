@@ -70,11 +70,12 @@ BEGIN TRY
 			)
 		SELECT col.COLUMN_NAME AS ColumnName
 			, col.ORDINAL_POSITION AS OrdinalPosition
-			, col.COLUMN_DEFAULT AS DefaultSetting
 			, col.DATA_TYPE AS DataType
 			, col.CHARACTER_MAXIMUM_LENGTH AS MaxLength
-			, col.DATETIME_PRECISION AS DatePrecision
 			, col.NUMERIC_PRECISION AS NumericPrecision
+			, col.NUMERIC_SCALE AS NumericScale
+			, col.DATETIME_PRECISION AS DatePrecision
+			, col.COLUMN_DEFAULT AS DefaultSetting
 			, CAST(CASE col.IS_NULLABLE
 					WHEN 'NO'
 						THEN 0
@@ -120,6 +121,7 @@ BEGIN TRY
 		UNION ALL
 		
 		SELECT TOP 1 @strTableName
+			, NULL
 			, NULL
 			, NULL
 			, NULL
