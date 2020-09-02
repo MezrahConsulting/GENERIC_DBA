@@ -24,7 +24,7 @@ GO
 --				procedure you check this function for a 1 if it is a 1 you bypass output, if it is a 0  you show output.
 --              THIS IS SPECIFICALLY FOR DATA DICTIONARY PROCS
 -- =============================================
-CREATE OR ALTER PROCEDURE DD_SuppressOutput (
+CREATE OR ALTER PROCEDURE sp_DD_SuppressOutput (
 	-- NO PARAMATERS NEEDED
 	-- REMINDER EXCEPTION HANDLING WITH TRY CATCH DOES NOT WORK IN FUNCTIONS
     	@boolSuppress BIT OUTPUT
