@@ -6,6 +6,7 @@ GO
 -- Author:		Dave Babler
 -- Create date: 08/26/2020
 -- Description:	This recreates and improves upon Oracle's ANSI DESCRIBE table built in data dictionary proc
+-- Subprocedures: 1. DD_ShowTableComment
 -- =============================================
 CREATE OR ALTER PROCEDURE DD_Describe 
 	-- Add the parameters for the stored procedure here
@@ -144,9 +145,9 @@ BEGIN TRY
 		SELECT @strMessageOut AS 'NON_LOGGED_ERROR_MESSAGE'
 	END
 
-	DROP TABLE
-
-	IF EXISTS #__suppress_results;END TRY
+		DROP TABLE
+		IF EXISTS #__suppress_results;
+	END TRY
 	BEGIN CATCH
 		INSERT INTO dbo.DB_EXCEPTION_TANK
 		VALUES (
