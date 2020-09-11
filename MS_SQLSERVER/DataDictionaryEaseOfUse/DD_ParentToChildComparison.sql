@@ -45,7 +45,7 @@ BEGIN TRY
 			, @strParentColumn_ph = @strParentColumn;
 
 		SET @SQLORPHANS = N'
-			SELECT ' + @strChildColumn + ' 
+			SELECT ' + @strChildColumn + ' [Orphans]
 			FROM ' + OBJECT_NAME(@intChildTableSAFE) + '
 			WHERE ' + 
 			@strChildColumn + '  NOT IN  (
