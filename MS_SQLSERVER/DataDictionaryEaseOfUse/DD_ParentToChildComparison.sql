@@ -3,6 +3,7 @@
 -- Create date: 9/11/2020
 -- Description:	Used for quickly making comparisons when determining foreign keys on non-defined-relations
 -- Subprocedures: 1. DD_ColumnCompare
+-- WARNING: will not work with tables that have been defined as a keyword (looking at you 'plan')
 -- =============================================
 CREATE OR ALTER PROCEDURE DD_ParentToChildComparison 
 	-- Add the parameters for the stored procedure here
