@@ -17,10 +17,18 @@ BEGIN TRY
     DECLARE @intChildTableSAFE INT --pay attention to this Fernando
     , @intParentTableSAFE INT -- again LOOK AT ME Fernando, I'm very important!!!!
     , @SQLUNION NVARCHAR(max)
-    , @TSQLParameterDefinitions NVARCHAR(500)
-    , @SQLORPHANS NVARCHAR(MAX);
+    , @TSQLParameterDefinitionsFull NVARCHAR(500)
+    , @TSQLParameterDefinitionsCount NVARCHAR(500)
+    , @SQLORPHANS NVARCHAR(MAX)
+    , @SQLORPHANCHECK NVARCHAR(MAX)
+    , @intRowCount INT;
 
-    SET @TSQLParameterDefinitions = N'@strChildColumn_ph VARCHAR(64), @strParentColumn_ph VARCHAR(64)';
+    SET @TSQLParameterDefinitionsFull = N'@strChildColumn_ph VARCHAR(64)
+                                        , @strParentColumn_ph VARCHAR(64)';
+    SET @TSQLParameterDefinitionsCount = N' @intRowCount INT OUTPUT
+                                        , @strChildColumn_ph VARCHAR(64)
+                                        , @strParentColumn_ph VARCHAR(64)
+                                        ';
     SET @intChildTableSAFE = OBJECT_ID(@strChildTable);--will not parse if malformed or injected --Dave Babler
     SET @intParentTableSAFE = OBJECT_ID(@strParentTable) -- same as above; tables are DANGEROUS if not protected in dynamic 
 
@@ -41,9 +49,31 @@ BEGIN TRY
             OBJECT_NAME(@intParentTableSAFE) + '';
 
         EXEC sp_executesql @SQLUNION
-            , @TSQLParameterDefinitions
+            , @TSQLParameterDefinitionsFull
             , @strChildColumn_ph = @strChildColumn
             , @strParentColumn_ph = @strParentColumn;
+
+       SET @SQLORPHANCHECK = N'
+            SELECT @intRowCount = COUNT(' + @strChildColumn + ')  
+            FROM ' + OBJECT_NAME(@intChildTableSAFE) + '
+            WHERE ' + 
+            @strChildColumn + '  NOT IN  (
+                                                SELECT ' + @strParentColumn + 
+            '
+                                                FROM ' + OBJECT_NAME(@intParentTableSAFE) + 
+            '                                                     
+                                            )';
+        PRINT @SQLORPHANCHECK;
+  
+        
+        EXEC  sp_executesql @SQLORPHANS
+            , @TSQLParameterDefinitionsCount
+            , @intRowCount OUTPUT
+            , @strChildColumn_ph = @strChildColumn
+            , @strParentColumn_ph = @strParentColumn;
+        PRINT '000000000000000000000000';
+        PRINT @intRowCount;
+        SELECT @intRowCount [Orphans to Kill];   
 
         SET @SQLORPHANS = N'
             SELECT ' + @strChildColumn + ' [Orphans]
@@ -56,11 +86,9 @@ BEGIN TRY
             '                                                     
                                             )';
 
-        EXEC sp_executesql @SQLORPHANS
-            , @TSQLParameterDefinitions
-            , @strChildColumn_ph = @strChildColumn
-            , @strParentColumn_ph = @strParentColumn;
+        EXEC  sp_executesql @SQLORPHANS;   
 
+         PRINT @SQLORPHANS;
         END TRY 
 
 
