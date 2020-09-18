@@ -60,30 +60,49 @@ BEGIN TRY
                                                 FROM ' + OBJECT_NAME(@intParentTableSAFE) + 
             '                                                     
                                             )';
-        PRINT @SQLOrphanCheck;
+
   
         
         EXEC  sp_executesql @SQLOrphanCheck
             , @TSQLParameterDefinitionsCount
             , @intRowCount OUTPUT
-        PRINT '000000000000000000000000';
-        PRINT @intRowCount;
-        SELECT @intRowCount [Orphans to Kill];   
 
-        SET @SQLOrphans = N'
-            SELECT ' + @strChildColumn + ' [Orphans]
-            FROM ' + OBJECT_NAME(@intChildTableSAFE) + '
-            WHERE ' + 
-            @strChildColumn + '  NOT IN  (
-                                                SELECT ' + @strParentColumn + 
-            '
-                                                FROM ' + OBJECT_NAME(@intParentTableSAFE) + 
-            '                                                     
-                                            )';
+        IF @intRowCount > 0 
+            BEGIN 
+            
+            SET @SQLOrphans = N'
+                SELECT * 
+                FROM ' + OBJECT_NAME(@intChildTableSAFE) + '
+                WHERE ' + 
+                @strChildColumn + '  NOT IN  (
+                                                    SELECT ' + @strParentColumn + 
+                '
+                                                    FROM ' + OBJECT_NAME(@intParentTableSAFE) + 
+                '                                                     
+                                                )';
 
-        EXEC  sp_executesql @SQLOrphans;   
+            EXEC  sp_executesql @SQLOrphans;   --GETS THE OUTPUT OF THE FULL ORPHAN DATA FOR QUICK EXCEL EXPORT
 
+            --Resetting the value for print to copy into different documention if needed that doesn't need a SELECT *
+            SET @SQLOrphans = N'
+                SELECT ' + @strChildColumn + ' [Orphans]
+                FROM ' + OBJECT_NAME(@intChildTableSAFE) + '
+                WHERE ' + 
+                @strChildColumn + '  NOT IN  (
+                                                    SELECT ' + @strParentColumn + 
+                '
+                                                    FROM ' + OBJECT_NAME(@intParentTableSAFE) + 
+                '                                                     
+                                                )';
          PRINT @SQLOrphans;
+            
+            END
+        ELSE 
+            BEGIN
+               PRINT 'No Orphans Found';
+            END;
+
+
         END TRY 
 
 
