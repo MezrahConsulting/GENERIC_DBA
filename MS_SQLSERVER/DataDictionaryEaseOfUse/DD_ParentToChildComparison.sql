@@ -19,13 +19,16 @@ BEGIN TRY
     , @SQLUnion NVARCHAR(max)
     , @TSQLParameterDefinitionsFull NVARCHAR(500)
     , @TSQLParameterDefinitionsCount NVARCHAR(500)
+    , @TSQLParameterDefinitions1to1 NVARCHAR(500)
     , @SQLOrphans NVARCHAR(MAX)
     , @SQLOrphanCheck NVARCHAR(MAX)
+    , @SQL1to1Check NVARCHAR(MAX)
     , @intRowCount INT;
 
     SET @TSQLParameterDefinitionsFull = N'@strChildColumn_ph VARCHAR(64)
                                         , @strParentColumn_ph VARCHAR(64)';
     SET @TSQLParameterDefinitionsCount = N' @intRowCount_ph INT OUTPUT';
+    SET @TSQLParameterDefinitions1to1 = N'@strChildColumn_ph VARCHAR(64)';
     SET @intChildTableSAFE = OBJECT_ID(@strChildTable);--will not parse if malformed or injected --Dave Babler
     SET @intParentTableSAFE = OBJECT_ID(@strParentTable) -- same as above; tables are DANGEROUS if not protected in dynamic 
 
@@ -49,6 +52,20 @@ BEGIN TRY
             , @TSQLParameterDefinitionsFull
             , @strChildColumn_ph = @strChildColumn
             , @strParentColumn_ph = @strParentColumn;
+
+        SET  @SQL1to1Check = N' 
+            SELECT  TOP 25 PERCENT COUNT(*) AS CountFK ,' +
+                     @strChildColumn + ' 
+            FROM  ' + OBJECT_NAME(@intChildTableSAFE) + ' ' + 
+         '  GROUP BY ' + @strChildColumn + '
+            ORDER BY CountFK DESC
+        ';
+            /**WHY? because it's important for us to see if the table has a one to many relationship or a 1 to 1 
+            * relation ship.  If most of the DESC counts are very low, such as 3 or less check to make sure there's not 
+            * an error in a 1 to 1 relationship. --- Dave Babler  */ 
+        print @SQL1to1Check;
+        EXEC sp_executesql @SQL1to1Check;
+
 
        SET @SQLOrphanCheck = N'
             SELECT @intRowCount_ph = COUNT(' + @strChildColumn + ')  
