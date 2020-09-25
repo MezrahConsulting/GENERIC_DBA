@@ -82,10 +82,10 @@ BEGIN TRY
 						THEN 0
 					ELSE 1
 					END AS BIT) AS IsNullable
-			, COLUMNPROPERTY(OBJECT_ID('[' + col.TABLE_SCHEMA + '].[' + col.TABLE_NAME + ']'), col.COLUMN_NAME, 'IsIdentity') AS 
-			IsIdentity
 			, COLUMNPROPERTY(OBJECT_ID('[' + col.TABLE_SCHEMA + '].[' + col.TABLE_NAME + ']'), col.COLUMN_NAME, 'IsComputed') AS 
 			IsComputed
+			, COLUMNPROPERTY(OBJECT_ID('[' + col.TABLE_SCHEMA + '].[' + col.TABLE_NAME + ']'), col.COLUMN_NAME, 'IsIdentity') AS 
+			IsIdentity
 			, CAST(ISNULL(pk.is_primary_key, 0) AS BIT) AS IsPrimaryKey
 			, 'FK of: ' + fkeys.ReferencedTable + '.' + fkeys.PrimaryKeyColumnName AS ReferencedTablePrimaryKey
 			, col.COLLATION_NAME AS CollationName
