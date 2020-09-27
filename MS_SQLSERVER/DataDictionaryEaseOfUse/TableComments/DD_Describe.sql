@@ -98,6 +98,21 @@ BEGIN TRY
 			WHERE fk.name IS NOT NULL
 				AND tab.name = @strTableName
                 AND pk_tab.schema_id = SCHEMA_ID(@strSchemaName)
+			),
+		 pk AS (SELECT SCHEMA_NAME(o.schema_id) AS TABLE_SCHEMA
+					, o.name AS TABLE_NAME
+					, c.name AS COLUMN_NAME
+					, i.is_primary_key
+				FROM sys.indexes AS i
+				INNER JOIN sys.index_columns AS ic
+					ON i.object_id = ic.object_id
+						AND i.index_id = ic.index_id
+				INNER JOIN sys.objects AS o
+					ON i.object_id = o.object_id
+				LEFT JOIN sys.columns AS c
+					ON ic.object_id = c.object_id
+						AND c.column_id = ic.column_id
+				WHERE i.is_primary_key = 1
 			)
 		SELECT col.COLUMN_NAME AS ColumnName
 			, col.ORDINAL_POSITION AS OrdinalPosition
@@ -121,22 +136,7 @@ BEGIN TRY
 			, col.COLLATION_NAME AS CollationName
 			, s.value AS Description
 		FROM INFORMATION_SCHEMA.COLUMNS AS col
-		LEFT JOIN (
-			SELECT SCHEMA_NAME(o.schema_id) AS TABLE_SCHEMA
-				, o.name AS TABLE_NAME
-				, c.name AS COLUMN_NAME
-				, i.is_primary_key
-			FROM sys.indexes AS i
-			INNER JOIN sys.index_columns AS ic
-				ON i.object_id = ic.object_id
-					AND i.index_id = ic.index_id
-			INNER JOIN sys.objects AS o
-				ON i.object_id = o.object_id
-			LEFT JOIN sys.columns AS c
-				ON ic.object_id = c.object_id
-					AND c.column_id = ic.column_id
-			WHERE i.is_primary_key = 1
-			) AS pk
+		LEFT JOIN pk
 			ON col.TABLE_NAME = pk.TABLE_NAME
 				AND col.TABLE_SCHEMA = pk.TABLE_SCHEMA
 				AND col.COLUMN_NAME = pk.COLUMN_NAME
