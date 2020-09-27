@@ -6,22 +6,51 @@ GO
 -- Author:		Dave Babler
 -- Create date: 08/26/2020
 -- Description:	This recreates and improves upon Oracle's ANSI DESCRIBE table built in data dictionary proc
+-- 				This will default to the dbo schema unless specified within the input parameter.
 -- Subprocedures: 1. DD_ShowTableComment
+-- 				  2. UTL_fn_DelimListToTable  (already exists, used to have diff name)
 -- =============================================
 CREATE OR ALTER PROCEDURE DD_Describe 
 	-- Add the parameters for the stored procedure here
-	@strTableName VARCHAR(64) 
+	@str_input_TableName VARCHAR(128) 
 	 
 AS
 
 
 
-DECLARE @strMessageOut NVARCHAR(320);
-DECLARE @boolIsTableCommentSet BIT = NULL;
-DECLARE @strTableComment NVARCHAR(320);
-DECLARE @strTableSubComment NVARCHAR(80);--This will be an additional flag warning there is no actual table comment!
+DECLARE @strMessageOut NVARCHAR(320)
+		, @boolIsTableCommentSet BIT = NULL
+		, @strTableComment NVARCHAR(320)
+		, @strTableSubComment NVARCHAR(80)--This will be an additional flag warning there is no actual table comment!
+		, @strSchemaName NVARCHAR(64)
+		, @strTableName NVARCHAR(64)
+		, @intSchmeaKey INT = 1  --if needed the schema comes before the delimiter
+        , @intTableKey INT = 2 -- and the table after
+		, @charDelimiter CHAR(1) = '.' -- can only delimit schmea.TABLE with periods;
+
 
 BEGIN TRY
+
+	/** First check to see if a schema was specified in the input paramater, schema.table, else default to dbo. -- Babler*/
+
+	IF CHARINDEX(@charDelimiter, @str_input_TableName) > 0
+	BEGIN 
+		SELECT @strSchemaName = StringValue
+		FROM UTL_fn_DelimListToTable(@str_input_TableName, '.')
+		WHERE ValueID = @intSchmeaKey;
+
+		SELECT @strTableName = StringValue
+		FROM UTL_fn_DelimListToTable(@str_input_TableName, '.')
+		WHERE ValueID = @intTableKey;
+	END
+	ELSE 
+	BEGIN 
+		/**If no delimiting set default schema of dbo, and table name to what's passed in -- Dave Babler*/
+		SET @strSchemaName = 'dbo';
+		SET @strTableName = @str_input_TableName;
+	END
+	PRINT 'Schema: ' + @strSchemaName + ' ' +'Table: ' +@strTableName;
+
 	IF EXISTS (
 			/**Check to see if the table exists, if it does not we will output an Error Message
         * however since we are not writing anything to the DD we won't go through the whole RAISEEROR 
@@ -68,6 +97,7 @@ BEGIN TRY
 					AND pk_col.object_id = fk_cols.referenced_object_id
 			WHERE fk.name IS NOT NULL
 				AND tab.name = @strTableName
+                AND pk_tab.schema_id = SCHEMA_ID(@strSchemaName)
 			)
 		SELECT col.COLUMN_NAME AS ColumnName
 			, col.ORDINAL_POSITION AS OrdinalPosition
@@ -117,7 +147,7 @@ BEGIN TRY
 		LEFT JOIN fkeys AS fkeys
 			ON col.COLUMN_NAME = fkeys.NameofFKColumn
 		WHERE col.TABLE_NAME = @strTableName
-			AND col.TABLE_SCHEMA = 'dbo'
+			AND col.TABLE_SCHEMA = @strSchemaName
 		
 		UNION ALL
 		
@@ -136,7 +166,7 @@ BEGIN TRY
 			, NULL
 			, @strTableSubComment
 			, @strTableComment
-		ORDER BY 2
+		ORDER BY 2 
 	END
 	ELSE
 	BEGIN
