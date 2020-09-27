@@ -10,7 +10,7 @@ GO
 -- Subprocedures: 1. DD_ShowTableComment
 -- 				  2. UTL_fn_DelimListToTable  (already exists, used to have diff name)
 -- =============================================
-CREATE OR ALTER PROCEDURE DD_Describe 
+CREATE OR ALTER PROCEDURE DD_Describe2
 	-- Add the parameters for the stored procedure here
 	@str_input_TableName VARCHAR(128) 
 	 
@@ -30,7 +30,7 @@ DECLARE @strMessageOut NVARCHAR(320)
 
 
 BEGIN TRY
-
+		DROP TABLE IF EXISTS ##DESCRIBE;  --for future output to temp tables ignore for now
 	/** First check to see if a schema was specified in the input paramater, schema.table, else default to dbo. -- Babler*/
 
 	IF CHARINDEX(@charDelimiter, @str_input_TableName) > 0
@@ -98,8 +98,8 @@ BEGIN TRY
 			WHERE fk.name IS NOT NULL
 				AND tab.name = @strTableName
                 AND pk_tab.schema_id = SCHEMA_ID(@strSchemaName)
-			),
-		 pk AS (SELECT SCHEMA_NAME(o.schema_id) AS TABLE_SCHEMA
+			)
+	, pk AS	 (SELECT SCHEMA_NAME(o.schema_id) AS TABLE_SCHEMA
 					, o.name AS TABLE_NAME
 					, c.name AS COLUMN_NAME
 					, i.is_primary_key
@@ -114,6 +114,7 @@ BEGIN TRY
 						AND c.column_id = ic.column_id
 				WHERE i.is_primary_key = 1
 			)
+
 		SELECT col.COLUMN_NAME AS ColumnName
 			, col.ORDINAL_POSITION AS OrdinalPosition
 			, col.DATA_TYPE AS DataType
@@ -135,6 +136,8 @@ BEGIN TRY
 			, 'FK of: ' + fkeys.ReferencedTable + '.' + fkeys.PrimaryKeyColumnName AS ReferencedTablePrimaryKey
 			, col.COLLATION_NAME AS CollationName
 			, s.value AS Description
+
+
 		FROM INFORMATION_SCHEMA.COLUMNS AS col
 		LEFT JOIN pk
 			ON col.TABLE_NAME = pk.TABLE_NAME
@@ -144,6 +147,7 @@ BEGIN TRY
 			ON s.major_id = OBJECT_ID(col.TABLE_SCHEMA + '.' + col.TABLE_NAME)
 				AND s.minor_id = col.ORDINAL_POSITION
 				AND s.name = 'MS_Description'
+				AND s.class = 1 --class 1 is just tables and columns we don't want comments on indexes right now
 		LEFT JOIN fkeys AS fkeys
 			ON col.COLUMN_NAME = fkeys.NameofFKColumn
 		WHERE col.TABLE_NAME = @strTableName
@@ -167,7 +171,12 @@ BEGIN TRY
 			, @strTableSubComment
 			, @strTableComment
 		ORDER BY 2 
+
 	END
+
+
+
+
 	ELSE
 	BEGIN
 		SET @strMessageOut = ' The table you typed in: ' + @strTableName + ' ' + 'is invalid, check spelling, try again? ';
