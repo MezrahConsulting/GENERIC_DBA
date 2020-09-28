@@ -177,6 +177,7 @@ BEGIN TRY
 				, col.COLLATION_NAME AS CollationName
 				, s.value AS Description
 				, indexList.IndexesRowIsInvolvedIn
+			INTO ##DESCRIBE --GLOBAL TEMP 
 			FROM INFORMATION_SCHEMA.COLUMNS AS col
 			LEFT JOIN pk
 				ON col.TABLE_NAME = pk.TABLE_NAME
@@ -214,10 +215,20 @@ BEGIN TRY
 			, @strTableComment
 			, NULL --list of indexes 
 		ORDER BY 2 
-
+		/**Why this trashy garbage Dave? 
+		* 1. I didn't have time to come up with a fake pass through TVF, nor would I want
+		* 		what should just be a simple command and execute to have to go through the garbage
+		* 		of having to SELECT out of a TVF.
+		* 2. If we want to be able to select from our now 'much better than' ANSI DESCRIBE 
+		*	 then we have to output the table like this. 
+		* 3. Be advised if multiple people run this at the same time the global temp table will change!
+		* 4.  Future iterations could allow someone to choose their own global temp table name, but again, 
+		*	 I WANT SIMPLICITY ON THE CALL, even if the code itself is quite complex!
+		* -- Dave Babler 2020-09-28
+		*/
+		SELECT *
+		FROM ##DESCRIBE; --WE HAVE TO OUTPUT IT. 
 	END
-
-
 
 
 	ELSE
