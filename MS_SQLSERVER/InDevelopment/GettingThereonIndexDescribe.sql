@@ -79,29 +79,48 @@ WHERE ValueID = @intTableKey;
 						AND c.column_id = ic.column_id
 				WHERE i.is_primary_key = 1
 			)
-	, idxs AS (    SELECT 
-					 TableName = t.name,
-					 IndexName = ind.name,
-					 IndexId = ind.index_id,
-					 ColumnId = ic.index_column_id,
-					 ColumnName = col.name
-				FROM 
-					 sys.indexes ind 
-				INNER JOIN 
-					 sys.index_columns ic ON  ind.object_id = ic.object_id and ind.index_id = ic.index_id 
-				INNER JOIN 
-					 sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id 
-				INNER JOIN 
-					 sys.tables t ON ind.object_id = t.object_id 
-				WHERE 
-					 ind.is_primary_key = 0 
-					 AND ind.is_unique = 0 
-					 AND ind.is_unique_constraint = 0 
-					 AND t.is_ms_shipped = 0 
-					   and t.name = @strTableName
-
-			)
-
+, indStart
+AS (
+	SELECT TableName = t.name
+		, IndexName = ind.name
+		, IndexId = ind.index_id
+		, ColumnId = ic.index_column_id
+		, ColumnName = col.name
+	FROM sys.indexes ind
+	INNER JOIN sys.index_columns ic
+		ON ind.object_id = ic.object_id
+			AND ind.index_id = ic.index_id
+	INNER JOIN sys.columns col
+		ON ic.object_id = col.object_id
+			AND ic.column_id = col.column_id
+	INNER JOIN sys.tables t
+		ON ind.object_id = t.object_id
+	WHERE ind.is_primary_key = 0
+		AND ind.is_unique = 0
+		AND ind.is_unique_constraint = 0
+		AND t.is_ms_shipped = 0
+		AND t.Name = @strTableName
+	)
+	, indList
+AS (
+	SELECT i2.TableName
+		, i2.IndexName
+		, i2.IndexID
+		, i2.ColumnId
+		, i2.ColumnName
+		, (
+			SELECT SUBSTRING((
+						SELECT ', ' + IndexName
+						FROM indStart i1
+						WHERE i1.ColumnName = i2.ColumnName
+						FOR XML PATH('')
+						), 2, 200000)
+			) AS IndexesRowIsInvolvedIn
+		, ROW_NUMBER() OVER (
+			PARTITION BY LOWER(ColumnName) ORDER BY ColumnId
+			) AS RowNum
+	FROM indStart i2
+	)
 
 		SELECT col.COLUMN_NAME AS ColumnName
 			, col.ORDINAL_POSITION AS OrdinalPosition
@@ -123,8 +142,8 @@ WHERE ValueID = @intTableKey;
 			, CAST(ISNULL(pk.is_primary_key, 0) AS BIT) AS IsPrimaryKey
 			, 'FK of: ' + fkeys.ReferencedTable + '.' + fkeys.PrimaryKeyColumnName AS ReferencedTablePrimaryKey
 			, col.COLLATION_NAME AS CollationName
-			, idxs.IndexName
 			, s.value AS Description
+			, indexList.IndexesRowIsInvolvedIn
 
 
 		FROM INFORMATION_SCHEMA.COLUMNS AS col
@@ -139,8 +158,9 @@ WHERE ValueID = @intTableKey;
 				AND s.class = 1
 		LEFT JOIN fkeys AS fkeys
 			ON col.COLUMN_NAME = fkeys.NameofFKColumn
-		LEFT JOIN idxs
-			ON col.COLUMN_NAME = idxs.ColumnName
+		LEFT JOIN indexList
+			ON col.COLUMN_NAME = indexList.ColumnName
+				AND indexList.RowNum = 1
 		WHERE col.TABLE_NAME = @strTableName
 			AND col.TABLE_SCHEMA = @strSchemaName
 	END
